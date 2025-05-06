@@ -1,19 +1,43 @@
-const mongoose = require('mongoose');
-const { defaultModel } = require('../config/defineModel')
+class USER {
+  constructor(userName, pwd, phone, address, birthday, name, email, createdAt) {
+    this.userName = userName;
+    this.pwd = pwd;
+    this.phone = phone;
+    this.address = address;
+    this.birthday = birthday;
+    this.name = name;
+    this.email = email;
+    this.createdAt = createdAt;
+  }
 
-// User Schema
-const UserSchema = mongoose.Schema({
-  userName: defaultModel.stringUnique,
-  userPwd: defaultModel.stringR,
-  name: defaultModel.stringR,
-  email: defaultModel.stringUnique,
-  phone: defaultModel.stringPhone,
-  gender: defaultModel.number,
-  dateofBirth: defaultModel.date,
-  role: defaultModel.number,
-  otp: defaultModel.string,
-  isWarned: defaultModel.number,
-  isActived: defaultModel.boolean
-});
+  // Phương thức để ánh xạ document từ Firestore vào đối tượng User
+  static fromFirestore(document) {
+    const data = document.data();
+    return new User(
+      data.userName,
+      data.pwd,
+      data.phone,
+      data.address,
+      data.birthday,
+      data.name,
+      data.email,
+      data.createdAt
+    );
+  }
 
-const User = module.exports = mongoose.model('USERINFO', UserSchema, 'USERINFO');
+  // Phương thức để chuyển đối tượng thành dữ liệu cho Firestore
+  toFirestore() {
+    return {
+      userName: this.userName,
+      pwd: this.pwd,
+      phone: this.phone,
+      address: this.address,
+      birthday: this.birthday,
+      name: this.name,
+      email: this.email,
+      createdAt: this.createdAt,
+    };
+  }
+}
+
+module.exports = USER;

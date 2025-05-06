@@ -18,47 +18,45 @@ const registerUserAsync = async (body) => {
       name,
       email,
       phone,
-      gender,
       dateofBirth,
     } = body;
     //kiểm tra xem đã có email trong database chưa
-    const emailExist = await USER.findOne({
-      email: email,
-    });
+    const emailExist = await findUserByFieldAsync("email", email).empty;
     if (emailExist)
       return {
         message: "Email đã tồn tại! Hãy đăng nhập!",
         success: false,
       };
     //kiểm tra xem đã có username trong database chưa
-    const userExist = await USER.findOne({
-      userName: userName,
-    });
-    if (userExist)
+    const userExist = await findUserByFieldAsync("userName", userName).empty;
+    const phoneExist = await findUserByFieldAsync("phone", phone).empty;
+    if (userExist || phoneExist)
       return {
         message: "Tài khoản đã tồn tại! Hãy đăng nhập!",
         success: false,
       };
 
-    if (userPwd != confirmPassword) {
+    if (userPwd !== confirmPassword) {
       return {
         message: "Nhập lại mật khẩu không khớp!",
         success: false,
       };
     }
+
     //mã hóa password
     const hashedPassword = await bcrypt.hash(userPwd, 8);
     //lưu user
-    const newUser = new USER({
-      userName: userName,
-      userPwd: hashedPassword,
-      name: name,
-      email: email,
-      phone: phone,
-      gender: gender,
-      dateofBirth: dateofBirth,
-    });
-    await newUser.save();
+    const newUser = new USER(
+      userName,
+      hashedPassword,
+      phone,
+      address,
+      dateofBirth,
+      name,
+      email,
+      admin.firestore.FieldValue.serverTimestamp()
+    );
+    await addUserAsync(newUser);
     return {
       message: "Đăng ký thành công",
       success: true,
@@ -74,21 +72,20 @@ const registerUserAsync = async (body) => {
 };
 
 const loginAsync = async (body) => {
-  const userRef = db.collection("USER");
   try {
     const { userName, userPwd, provider, idToken } = body;
 
     if (provider === "account") {
       const [userNameSnap, phoneSnap] = await Promise.all([
-        userRef.where("userName", "==", userName).get(),
-        userRef.where("phone", "==", userName).get(),
+        findUserByFieldAsync("userName", userName),
+        findUserByFieldAsync("phone", userName),
       ]);
 
       const users = new Map();
 
       // Gộp kết quả (tránh trùng ID)
-      statusSnap.forEach((doc) => users.set(doc.id, doc.data()));
-      roleSnap.forEach((doc) => users.set(doc.id, doc.data()));
+      userNameSnap.forEach((doc) => users.set(doc.id, doc.data()));
+      phoneSnap.forEach((doc) => users.set(doc.id, doc.data()));
 
       // Convert Map to array
       const result = Array.from(users.values());
@@ -111,26 +108,23 @@ const loginAsync = async (body) => {
     } else {
       const decodedUser = decodedToken(idToken);
 
-      const queryRef = userRef.where("email", "==", decodedUser.email);
+      const snapshot = await findUserByFieldAsync("email", decodedUser.email);
 
-      const querySnapshot = await queryRef.get();
-
-      const user = querySnapshot.docs[0];
-
-      if (!user) {
+      if (!snapshot || snapshot.empty) {
         //mã hóa password
         const hashedPassword = await bcrypt.hash("123456789", 8);
-        const newAccount = {
-          userName: decodedToken.email,
-          email: decodedToken.email,
-          name: "Người dùng mới",
-          phone: "",
-          pwd: hashedPassword,
-          address: "",
-          birthDay: "",
-        };
+        const newAccount = new USER(
+          decodedToken.email,
+          decodedToken.email,
+          "Người dùng mới",
+          "",
+          hashedPassword,
+          "",
+          "",
+          admin.firestore.FieldValue.serverTimestamp()
+        );
 
-        const newId = await addUser(newAccount);
+        await addUserAsync(newAccount);
       }
     }
 
@@ -375,14 +369,22 @@ const getALLUserAsync = async () => {
   }
 };
 
-const addUser = async (userData) => {
-  const docRef = await db.collection("users").add({
-    ...userData,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(), // thêm timestamp nếu cần
-  });
+const addUserAsync = async (userData) => {
+  try {
+    const userRef = db.collection("USER");
+    await userRef.add(userData.toFirestore());
+  } catch (error) {
+    console.log(error);
+  }
+};
 
-  console.log("Đã thêm user với ID:", docRef.id);
-  return docRef.id;
+const findUserByFieldAsync = async (field, value) => {
+  try {
+    const userRef = db.collection("USER");
+    return await userRef.where(field, "==", value).get();
+  } catch (error) {
+    console.log(error);
+  }
 };
 
 module.exports = {
@@ -395,5 +397,6 @@ module.exports = {
   _findUserByRoleAsync,
   changeInfoAsync,
   getALLUserAsync,
-  addUser,
+  addUserAsync,
+  findUserByFieldAsync,
 };
