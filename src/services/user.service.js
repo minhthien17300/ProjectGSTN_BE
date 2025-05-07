@@ -7,7 +7,7 @@ const nodemailer = require("nodemailer");
 const { sendMail } = require("./sendMail.service");
 const otpGenerator = require("otp-generator");
 const { decodedToken } = require("../helper/verifyUser.helper");
-const { db } = require("../config/firebase");
+const { db, admin } = require("../config/firebase");
 
 const registerUserAsync = async (body) => {
   try {
@@ -44,7 +44,8 @@ const registerUserAsync = async (body) => {
     }
 
     //mã hóa password
-    const hashedPassword = await bcrypt.hash(userPwd, 8);
+    const salt = bcrypt.genSaltSync(10); // 10 là "salt rounds"
+    const hashedPassword = await bcrypt.hash(userPwd, salt);
     //lưu user
     const newUser = new USER(
       userName,
@@ -98,7 +99,7 @@ const loginAsync = async (body) => {
         };
       }
 
-      const checkPassword = await bcrypt.compare(userPwd, user.userPwd);
+      const checkPassword = await bcrypt.compare(userPwd, user.pwd);
       if (!checkPassword) {
         return {
           message: "Sai mật khẩu!",
@@ -112,7 +113,8 @@ const loginAsync = async (body) => {
 
       if (!snapshot || snapshot.empty) {
         //mã hóa password
-        const hashedPassword = await bcrypt.hash("123456789", 8);
+        const salt = bcrypt.genSaltSync(10); // 10 là "salt rounds"
+        const hashedPassword = await bcrypt.hash("123456789", salt);
         const newAccount = new USER(
           decodedToken.email,
           decodedToken.email,

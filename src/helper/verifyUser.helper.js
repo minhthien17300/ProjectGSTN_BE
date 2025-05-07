@@ -1,11 +1,6 @@
 const USER = require("../models/USERINFO.model");
 const jwt = require("jsonwebtoken");
-const admin = require("firebase-admin");
-
-// Khởi tạo Firebase Admin với service account
-admin.initializeApp({
-  credential: admin.credential.cert(require("../../serviceAccountKey.json")),
-});
+const { admin } = require("../config/firebase");
 
 // Middleware kiểm tra token
 const authenticate = async (req, res, next) => {
