@@ -1,5 +1,15 @@
 class USER {
-  constructor(userName, pwd, phone, address, birthday, name, email, createdAt) {
+  constructor(
+    userName,
+    pwd,
+    phone,
+    address,
+    birthday,
+    name,
+    email,
+    role,
+    createdAt
+  ) {
     this.userName = userName;
     this.pwd = pwd;
     this.phone = phone;
@@ -7,13 +17,14 @@ class USER {
     this.birthday = birthday;
     this.name = name;
     this.email = email;
+    this.role = role;
     this.createdAt = createdAt;
   }
 
   // Phương thức để ánh xạ document từ Firestore vào đối tượng User
   static fromFirestore(document) {
     const data = document.data();
-    return new User(
+    return new USER(
       data.userName,
       data.pwd,
       data.phone,
@@ -21,6 +32,7 @@ class USER {
       data.birthday,
       data.name,
       data.email,
+      data.role,
       data.createdAt
     );
   }
@@ -35,6 +47,7 @@ class USER {
       birthday: this.birthday,
       name: this.name,
       email: this.email,
+      role: this.role,
       createdAt: this.createdAt,
     };
   }

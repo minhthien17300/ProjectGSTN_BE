@@ -3,7 +3,6 @@ const bcrypt = require("bcryptjs");
 const jwtServices = require("./jwt.service");
 const { defaultRoles } = require("../config/defineModel");
 const { configEnv } = require("../config/config");
-const nodemailer = require("nodemailer");
 const { sendMail } = require("./sendMail.service");
 const otpGenerator = require("otp-generator");
 const { decodedToken } = require("../helper/verifyUser.helper");
@@ -16,21 +15,22 @@ const registerUserAsync = async (body) => {
       userPwd,
       confirmPassword,
       name,
+      address,
       email,
       phone,
       dateofBirth,
     } = body;
     //kiểm tra xem đã có email trong database chưa
-    const emailExist = await findUserByFieldAsync("email", email).empty;
-    if (emailExist)
+    const emailExist = await findUserByFieldAsync("email", email);
+    if (!emailExist.empty)
       return {
         message: "Email đã tồn tại! Hãy đăng nhập!",
         success: false,
       };
     //kiểm tra xem đã có username trong database chưa
-    const userExist = await findUserByFieldAsync("userName", userName).empty;
-    const phoneExist = await findUserByFieldAsync("phone", phone).empty;
-    if (userExist || phoneExist)
+    const userExist = await findUserByFieldAsync("userName", userName);
+    const phoneExist = await findUserByFieldAsync("phone", phone);
+    if (!userExist.empty || !phoneExist.empty)
       return {
         message: "Tài khoản đã tồn tại! Hãy đăng nhập!",
         success: false,
@@ -55,6 +55,7 @@ const registerUserAsync = async (body) => {
       dateofBirth,
       name,
       email,
+      defaultRoles.User,
       admin.firestore.FieldValue.serverTimestamp()
     );
     await addUserAsync(newUser);
@@ -75,6 +76,9 @@ const registerUserAsync = async (body) => {
 const loginAsync = async (body) => {
   try {
     const { userName, userPwd, provider, idToken } = body;
+    let token = "";
+    let isCreateAccount = false;
+    let email = "";
 
     if (provider === "account") {
       const [userNameSnap, phoneSnap] = await Promise.all([
@@ -106,6 +110,12 @@ const loginAsync = async (body) => {
           success: false,
         };
       }
+
+      token = jwtServices.createToken({
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      });
     } else {
       const decodedUser = decodedToken(idToken);
 
@@ -123,17 +133,34 @@ const loginAsync = async (body) => {
           hashedPassword,
           "",
           "",
+          0,
           admin.firestore.FieldValue.serverTimestamp()
         );
 
-        await addUserAsync(newAccount);
+        const id = await addUserAsync(newAccount);
+
+        token = jwtServices.createToken({
+          id: id,
+          email: decodedToken.email,
+          role: defaultRoles.User,
+        });
+        isCreateAccount = true;
+        email = decodedToken.email;
+      } else {
+        token = jwtServices.createToken({
+          id: snapshot.id,
+          email: snapshot.email,
+          role: snapshot.role,
+        });
       }
     }
 
     return {
       message: "Đăng nhập thành công!",
       success: true,
-      data: idToken,
+      data: token,
+      isCreateAccount: isCreateAccount,
+      email: email,
     };
   } catch (err) {
     console.log(err);
@@ -375,6 +402,7 @@ const addUserAsync = async (userData) => {
   try {
     const userRef = db.collection("USER");
     await userRef.add(userData.toFirestore());
+    return userRef.id;
   } catch (error) {
     console.log(error);
   }

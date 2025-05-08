@@ -5,20 +5,19 @@ const schemas = {
     userPwd: joi.string().required(),
     confirmPassword: joi.string().required(),
     name: joi.string().required(),
+    address: joi.string().allow("").optional(),
     email: joi.string().email().required(),
     phone: joi
       .string()
-      .length(10)
       .pattern(/^[0-9]+$/)
       .required(),
-    gender: joi.number(),
     dateofBirth: joi.date(),
   }),
   login: joi.object().keys({
-    userName: joi.string(),
-    userPwd: joi.string(),
-    provider: joi.string(),
-    idToken: joi.string(),
+    userName: joi.string().allow("").optional(),
+    userPwd: joi.string().allow("").optional(),
+    provider: joi.string().required(),
+    idToken: joi.string().allow("").optional(),
   }),
   changePass: joi.object().keys({
     oldPassword: joi.string().required(),
