@@ -6,6 +6,7 @@ const configEnv = {
   PORT: process.env.PORT,
   EMAIL: process.env.EMAIL,
   PASSWORD: process.env.PASSWORD,
+  STORAGE_BUCKET: process.env.STORAGE_BUCKET,
 };
 const configFirebase = {
   API_KEY: process.env.API_KEY,

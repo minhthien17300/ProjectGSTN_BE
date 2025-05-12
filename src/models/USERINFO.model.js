@@ -24,6 +24,8 @@ class USER {
   // Phương thức để ánh xạ document từ Firestore vào đối tượng User
   static fromFirestore(document) {
     const data = document.data();
+    if (!data) return null;
+
     return new USER(
       data.userName,
       data.pwd,

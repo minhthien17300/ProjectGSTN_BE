@@ -1,7 +1,6 @@
 const express = require("express");
 const { configEnv } = require("./config/config");
 const app = express();
-const database = require("./config/database");
 const route = require("./routes/routes");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
