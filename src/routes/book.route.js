@@ -52,5 +52,11 @@ router.post(
 router.get("/getALLBook", Controller.getALLBookAsync);
 router.get("/getBookDetail", Controller.getBookDetailAsync);
 router.post("/fetchPage", Controller.fetchPageAsync);
+router.post("/confirmBuyBook", Controller.confirmBuyBookAsync);
+router.post(
+  "/addBookToLibrary",
+  jwtServices.verify,
+  Controller.addBookToLibraryAsync
+);
 
 module.exports = router;

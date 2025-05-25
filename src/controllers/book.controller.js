@@ -3,10 +3,7 @@ const controller = require("./message.controller");
 
 exports.addBookAsync = async (req, res, next) => {
   try {
-    const resServices = await bookServices.addBookAsync(
-      req.value.body,
-      req.files["images"]
-    );
+    const resServices = await bookServices.addBookAsync(req.value.body);
     if (!resServices.success) {
       return controller.sendSuccess(res, {}, 400, resServices.message);
     }
@@ -24,10 +21,7 @@ exports.addBookAsync = async (req, res, next) => {
 
 exports.editBookAsync = async (req, res, next) => {
   try {
-    const resServices = await bookServices.editBookAsync(
-      req.value.body,
-      req.files["images"]
-    );
+    const resServices = await bookServices.editBookAsync(req.value.body);
     if (!resServices.success) {
       return controller.sendSuccess(res, {}, 400, resServices.message);
     }
@@ -101,6 +95,47 @@ exports.fetchPageAsync = async (req, res, next) => {
       res,
       resServices.data,
       302,
+      resServices.message
+    );
+  } catch (err) {
+    console.log(err);
+    return controller.sendError(res);
+  }
+};
+
+exports.confirmBuyBookAsync = async (req, res, next) => {
+  try {
+    const resServices = await bookServices.confirmBuyBookAsync(req.value.body);
+    if (!resServices.success) {
+      return controller.sendSuccess(res, {}, 400, resServices.message);
+    }
+    return controller.sendSuccess(
+      res,
+      resServices.data,
+      201,
+      resServices.message
+    );
+  } catch (err) {
+    console.log(err);
+    return controller.sendError(res);
+  }
+};
+
+exports.addBookToLibraryAsync = async (req, res, next) => {
+  try {
+    const { decodeToken } = req.value.body;
+    const id = decodeToken.data.id;
+    const resServices = await bookServices.addBookToLibraryAsync(
+      id,
+      req.value.body.bookId
+    );
+    if (!resServices.success) {
+      return controller.sendSuccess(res, {}, 400, resServices.message);
+    }
+    return controller.sendSuccess(
+      res,
+      resServices.data,
+      201,
       resServices.message
     );
   } catch (err) {

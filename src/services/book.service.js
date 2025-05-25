@@ -1,11 +1,24 @@
 const BOOK = require("../models/BOOK.model");
+const OWNER = require("../models/OWNER.model");
 const uploadImageHelper = require("../helper/uploadImage.helper");
 const { db } = require("../config/firebase");
 const bookRef = db.collection("BOOK");
+const ownerRef = db.collection("OWNER");
+const { createBookToken, verifyBookToken } = require("../services/jwt.service");
 
-exports.addBookAsync = async (body, images) => {
+exports.addBookAsync = async (body) => {
   try {
-    const { name, description, author, grade, category, page, price } = body;
+    const {
+      name,
+      description,
+      author,
+      grade,
+      category,
+      page,
+      price,
+      img,
+      link,
+    } = body;
     const bookExist = await findBookByFieldAsync("name", name);
     if (!bookExist.empty) {
       return {
@@ -13,19 +26,14 @@ exports.addBookAsync = async (body, images) => {
         success: false,
       };
     }
-    let urlList = "";
-
-    if (images) {
-      urlList = await uploadImageHelper.uploadImageAsync(images, bookExist.id);
-    }
 
     const newBook = new BOOK(
       author,
       category,
       description,
       grade,
-      urlList,
-      "sdfghjk",
+      img,
+      link,
       name,
       page,
       price,
@@ -44,10 +52,20 @@ exports.addBookAsync = async (body, images) => {
   }
 };
 
-exports.editBookAsync = async (body, images) => {
+exports.editBookAsync = async (body) => {
   try {
-    const { id, name, description, author, grade, category, page, price } =
-      body;
+    const {
+      id,
+      name,
+      description,
+      author,
+      grade,
+      category,
+      page,
+      price,
+      imgUrl,
+      link,
+    } = body;
 
     const bookExist = await getBookDetailAsync(id);
     if (bookExist.empty) {
@@ -71,8 +89,8 @@ exports.editBookAsync = async (body, images) => {
       grade: grade,
       page: page,
       price: price,
-      img: [...img, ...urlList],
-      link: "adsdasdsa",
+      img: [...img, ...imgUrl],
+      link: link,
     });
 
     return {
@@ -196,9 +214,81 @@ exports.fetchPage = async (category, lastVisibleDoc = null, pageSize = 4) => {
   }
 };
 
+exports.confirmBuyBookAsync = async (body) => {
+  try {
+    const { bookId } = body;
+    const token = createBookToken(bookId);
+
+    return {
+      message: "Sao chép mã bên dưới và nhập mã để thêm sách!",
+      data: token,
+      success: true,
+    };
+  } catch (error) {
+    console.error("Lỗi tạo token:", error);
+    return {
+      mssage: "Mua sách không thành công!",
+      success: false,
+    };
+  }
+};
+
+exports.addBookToLibraryAsync = async (userId, bookId) => {
+  try {
+    const ownerExist = await ownerRef
+      .where("userId", "==", userId)
+      .where("bookId", "==", bookId)
+      .get();
+    if (!ownerExist.empty) {
+      return {
+        massage: "Bạn đã sở hữu sách này rồi!",
+        success: false,
+      };
+    }
+
+    const newOwner = new OWNER(
+      userId,
+      bookId,
+      0,
+      admin.firestore.Timestamp.now()
+    );
+
+    await addOwnerAsync(newOwner);
+
+    return {
+      message: "Sao chép mã bên dưới và nhập mã để thêm sách!",
+      data: token,
+      success: true,
+    };
+  } catch (error) {
+    console.error("Lỗi tạo token:", error);
+    return {
+      mssage: "Mua sách không thành công!",
+      success: false,
+    };
+  }
+};
+
 const addBookAsync = async (bookData) => {
   try {
     await bookRef.add(bookData.toFirestore());
+    return bookRef.id;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+const findOwnerbyFieldAsync = async (field, value) => {
+  try {
+    return await ownerRef.where(field, "==", value).get();
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+const addOwnerAsync = async (ownerData) => {
+  try {
+    await ownerRef.add(ownerData.toFirestore());
     return bookRef.id;
   } catch (error) {
     console.log(error);

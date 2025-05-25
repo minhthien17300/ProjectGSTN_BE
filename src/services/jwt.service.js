@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const { configEnv } = require("../config/config");
+
 const verify = (req, res, next) => {
   const header = req.headers.authorization;
 
@@ -42,7 +43,37 @@ const createToken = (data) => {
   );
 };
 
+const createBookToken = (id) => {
+  return jwt.sign(
+    {
+      iss: "GSTN",
+      data: id,
+    },
+    configEnv.ACCESS_TOKEN_SECRET
+  );
+};
+
+const verifyBookToken = (token, userId) => {
+  jwt.verify(token, configEnv.ACCESS_TOKEN_SECRET, (err, decodedFromToken) => {
+    if (err) {
+      return {
+        message: "Sai mã sách!",
+        success: false,
+      };
+    } else {
+      const id = decodedFromToken.data;
+      return {
+        message: "Chúc bạn học tập vui vẻ",
+        success: false,
+        data: id,
+      };
+    }
+  });
+};
+
 module.exports = {
   verify,
   createToken,
+  createBookToken,
+  verifyBookToken,
 };
